@@ -39,8 +39,9 @@ import {
     NewChatModalStackNavigator,
     SettingsModalStackNavigator,
 } from './ModalStackNavigators';
+import createCustomStackNavigator from './createCustomStackNavigator';
 
-const RootStack = createStackNavigator();
+const RootStack = createCustomStackNavigator();
 
 const propTypes = {
     network: PropTypes.shape({isOffline: PropTypes.bool}),
@@ -116,11 +117,21 @@ class AuthScreens extends React.Component {
         const modalScreenOptions = {
             headerShown: false,
             cardStyle: getNavigationModalCardStyle(this.props.isSmallScreenWidth),
+            isModalRoute: true,
         };
 
         return (
             <RootStack.Navigator
                 mode="modal"
+                modalPaths={[
+                    ROUTES.SETTINGS,
+                    ROUTES.PROFILE,
+                    ROUTES.IOU_BILL,
+                    ROUTES.IOU_REQUEST,
+                    ROUTES.SEARCH,
+                    ROUTES.NEW_CHAT,
+                    ROUTES.NEW_GROUP,
+                ]}
             >
                 {/* The MainDrawerNavigator contains the SidebarScreen and ReportScreen */}
                 <RootStack.Screen
@@ -128,6 +139,7 @@ class AuthScreens extends React.Component {
                     options={{
                         headerShown: false,
                         title: 'Expensify.cash',
+                        isMainRoute: true,
                     }}
                     component={MainDrawerNavigator}
                 />

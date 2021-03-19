@@ -1,9 +1,10 @@
+import _ from 'underscore';
 import React from 'react';
+import {View} from 'react-native';
 import PropTypes from 'prop-types';
 import {withOnyx} from 'react-native-onyx';
 import {createNavigatorFactory, useNavigationBuilder} from '@react-navigation/core';
 import {StackRouter} from '@react-navigation/routers';
-import withWindowDimensions from '../../../components/withWindowDimensions';
 import Modal from '../../../components/Modal';
 import themeColors from '../../../styles/themes/default';
 import ONYXKEYS from '../../../ONYXKEYS';
@@ -37,11 +38,10 @@ const propTypes = {
         render: PropTypes.func,
     })).isRequired,
 
+    modalPaths: PropTypes.arrayOf(PropTypes.string).isRequired,
+
     // Current url we are navigated to
     currentURL: PropTypes.string,
-
-    // Path for the modal parent to match on
-    path: PropTypes.string.isRequired,
 };
 
 const defaultProps = {
@@ -63,26 +63,57 @@ function getCurrentViewDescriptor(props) {
     return currentDescriptor;
 }
 
-const ResponsiveView = props => getCurrentViewDescriptor(props).render();
+const ResponsiveView = (props) => {
+    // All of these always need to render. Every descriptor in the navigation tree should render.
+    // But since Modals on web must always be rendered we'll only render the current view descriptor for those.
+    const mainRoute = _.find(props.descriptors, descriptor => descriptor.options.isMainRoute);
 
-// (
-//     <Modal
-//         isVisible={props.currentURL
-//             && props.currentURL.includes(props.path)}
-//         backgroundColor={themeColors.componentBG}
-//         type={CONST.MODAL.MODAL_TYPE.RIGHT_DOCKED}
-//         onClose={Navigation.dismissModal}
-//     >
-//         {}
-//     </Modal>
-// );
+    const modalRoutes = _.filter(props.descriptors, (descriptor, key) => {
+        const currentRoute = props.state.routes[props.state.index];
+        const currentRouteKey = currentRoute.key;
+
+        // We want all of the modal routes as long as it's not the current modal route
+        return descriptor.options.isModalRoute
+            && currentRouteKey !== key;
+    });
+
+    const currentModalRoute = _.find(props.descriptors, (descriptor, key) => {
+        const currentRoute = props.state.routes[props.state.index];
+        const currentRouteKey = currentRoute.key;
+        return descriptor.options.isModalRoute
+            && currentRouteKey === key;
+    });
+
+    const renderedModalScreen = currentModalRoute && currentModalRoute.render();
+    const mainPath = _.first(props.currentURL.slice(1).split('/'));
+    return (
+        <>
+            {mainRoute.render()}
+            <View style={{opacity: 0, height: 0, display: 'none'}}>
+                {_.map(modalRoutes, modalRoute => modalRoute.render())}
+                {renderedModalScreen}
+            </View>
+            {_.map(props.modalPaths, modalPath => (
+                <Modal
+                    key={`modal_${modalPath}`}
+                    isVisible={props.currentURL
+                        && mainPath === modalPath}
+                    backgroundColor={themeColors.componentBG}
+                    type={CONST.MODAL.MODAL_TYPE.RIGHT_DOCKED}
+                    onClose={Navigation.dismissModal}
+                >
+                    {renderedModalScreen}
+                </Modal>
+            ))}
+        </>
+    );
+};
 
 ResponsiveView.propTypes = propTypes;
 ResponsiveView.defaultProps = defaultProps;
 ResponsiveView.displayName = 'ResponsiveView';
 
 const ResponsiveViewWithHOCs = compose(
-    withWindowDimensions,
     withOnyx({
         currentURL: {
             key: ONYXKEYS.CURRENT_URL,
