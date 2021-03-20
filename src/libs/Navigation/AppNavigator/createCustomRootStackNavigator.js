@@ -95,7 +95,7 @@ const ResponsiveView = (props) => {
                     type={CONST.MODAL.MODAL_TYPE.RIGHT_DOCKED}
                     onClose={Navigation.dismissModal}
                 >
-                    {renderedModalScreen}
+                    {renderedModalScreen || <View />}
                 </Modal>
             ))}
         </>
