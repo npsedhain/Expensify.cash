@@ -11,6 +11,7 @@ import ONYXKEYS from '../../../ONYXKEYS';
 import Navigation from '../Navigation';
 import compose from '../../compose';
 import CONST from '../../../CONST';
+import styles from '../../../styles/styles';
 
 const propTypes = {
     // Navigation state for this navigator
@@ -49,55 +50,47 @@ const defaultProps = {
 };
 
 /**
- * Returns the current descriptor for the focused screen in this navigators state. The descriptor has a function
- * called render() that we must call each time this navigator updates. It's important to use this method to render
- * a screen, otherwise any child navigators won't be connected to the navigation tree properly.
+ * Returns the current descriptor key for the focused screen in this navigators state. The descriptor has a function
+ * called render() that we must call each time this navigator updates.
  *
  * @param {Object} props
  * @returns {Object}
  */
-function getCurrentViewDescriptor(props) {
+function getCurrentRouteDescriptorKey(props) {
     const currentRoute = props.state.routes[props.state.index];
-    const currentRouteKey = currentRoute.key;
-    const currentDescriptor = props.descriptors[currentRouteKey];
-    return currentDescriptor;
+    return currentRoute.key;
 }
 
 const ResponsiveView = (props) => {
-    // All of these always need to render. Every descriptor in the navigation tree should render.
-    // But since Modals on web must always be rendered we'll only render the current view descriptor for those.
+    // Every descriptor in the navigation tree MUST render otherwise navigation tree gets screwed up.
+    // Modals on larger screens or web must always be rendered except we only really need the current view to display
+    // inside the modal not any views that are underneath the top Modal view. This works differently when we are on
+    // iOS and Android with small screen width since we will use the react-navigation modals instead.
     const mainRoute = _.find(props.descriptors, descriptor => descriptor.options.isMainRoute);
+    const modalRoutes = _.filter(props.descriptors, (descriptor, key) => (
 
-    const modalRoutes = _.filter(props.descriptors, (descriptor, key) => {
-        const currentRoute = props.state.routes[props.state.index];
-        const currentRouteKey = currentRoute.key;
-
-        // We want all of the modal routes as long as it's not the current modal route
-        return descriptor.options.isModalRoute
-            && currentRouteKey !== key;
-    });
-
-    const currentModalRoute = _.find(props.descriptors, (descriptor, key) => {
-        const currentRoute = props.state.routes[props.state.index];
-        const currentRouteKey = currentRoute.key;
-        return descriptor.options.isModalRoute
-            && currentRouteKey === key;
-    });
+        // We want all of the modal routes as long as it's not the current modal route since this should be rendered
+        // inside the modal itself.
+        descriptor.options.isModalRoute
+            && getCurrentRouteDescriptorKey(props) !== key
+    ));
+    const currentModalRoute = _.find(props.descriptors, (descriptor, key) => (
+        descriptor.options.isModalRoute
+            && getCurrentRouteDescriptorKey(props) === key
+    ));
 
     const renderedModalScreen = currentModalRoute && currentModalRoute.render();
-    const mainPath = _.first(props.currentURL.slice(1).split('/'));
     return (
         <>
             {mainRoute.render()}
-            <View style={{opacity: 0, height: 0, display: 'none'}}>
+            <View style={styles.dNone}>
                 {_.map(modalRoutes, modalRoute => modalRoute.render())}
                 {renderedModalScreen}
             </View>
             {_.map(props.modalPaths, modalPath => (
                 <Modal
                     key={`modal_${modalPath}`}
-                    isVisible={props.currentURL
-                        && mainPath === modalPath}
+                    isVisible={props.currentURL.slice(1).startsWith(modalPath)}
                     backgroundColor={themeColors.componentBG}
                     type={CONST.MODAL.MODAL_TYPE.RIGHT_DOCKED}
                     onClose={Navigation.dismissModal}

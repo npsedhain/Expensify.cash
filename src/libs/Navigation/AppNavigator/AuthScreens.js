@@ -2,7 +2,6 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import {withOnyx} from 'react-native-onyx';
 import {createStackNavigator} from '@react-navigation/stack';
-
 import {getNavigationModalCardStyle} from '../../../styles/styles';
 import withWindowDimensions, {windowDimensionsPropTypes} from '../../../components/withWindowDimensions';
 import CONST from '../../../CONST';
@@ -39,9 +38,10 @@ import {
     NewChatModalStackNavigator,
     SettingsModalStackNavigator,
 } from './ModalStackNavigators';
-import createCustomStackNavigator from './createCustomStackNavigator';
+import createCustomRootStackNavigator from './createCustomRootStackNavigator';
+import shouldUseCustomRootStackNavigator from './shouldUseCustomRootStackNavigator';
 
-const RootStack = createCustomStackNavigator();
+const RootStack = shouldUseCustomRootStackNavigator ? createCustomRootStackNavigator() : createStackNavigator();
 
 const propTypes = {
     network: PropTypes.shape({isOffline: PropTypes.bool}),
@@ -123,6 +123,9 @@ class AuthScreens extends React.Component {
         return (
             <RootStack.Navigator
                 mode="modal"
+
+                // All modal routes must be passed in here so that they render properly on web
+                // eslint-disable-next-line react/jsx-props-no-multi-spaces
                 modalPaths={[
                     ROUTES.SETTINGS,
                     ROUTES.PROFILE,
